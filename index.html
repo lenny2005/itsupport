@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IT Support Dashboard</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+  <header class="header">
+    <div>
+      <h1>IT Support Dashboard</h1>
+      <p>Centralized IT request intake and response management</p>
+    </div>
+    <div class="author-credit">
+      Template by <strong>Lianet Caldero</strong><br />
+      January 2026
+    </div>
+  </header>
+
+  <main class="container">
+
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('dashboard', this)">
+        Dashboard
+      </button>
+      <button class="tab-btn" onclick="switchTab('setup', this)">
+        Setup Guide
+      </button>
+    </div>
+
+    <section id="dashboard" class="tab-content active">
+      <p style="color: var(--text-light);">
+        This dashboard is currently displaying demo content.
+        Connect it to Google Apps Script or a backend service to
+        display live IT support tickets.
+      </p>
+    </section>
+
+
+    <section id="setup" class="tab-content">
+      <div class="setup-section">
+
+        <h2>IT Support System Setup Guide</h2>
+
+        <div class="alert alert-info">
+          <strong>System Workflow:</strong><br />
+          Teacher scans QR code in classroom → Teacher submits google form → automatic email
+          notification → request tracking in the IT Support Dashboard.
+        </div>
+
+        <h3>Step 1: Create the Google Form</h3>
+
+        <h4>Section 1 of 2 — IT Support Request</h4>
+        <ul>
+          <li>Email (Required)</li>
+          <li>Room (Required)</li>
+          <li>Issue / Concern (Required)</li>
+          <li>
+            Issue Type (Multiple Choice)
+            <ul>
+              <li>Chromebooks</li>
+              <li>Smartboard</li>
+              <li>WiFi</li>
+              <li>Power</li>
+              <li>Unblock Website Request</li>
+            </ul>
+          </li>
+        </ul>
+
+        <h4>Section 2 of 2 — Website Unblock Request</h4>
+        <ul>
+          <li>Description (Optional)</li>
+          <li>Website Link (Required)</li>
+          <li>Time Needed (Required)</li>
+        </ul>
+
+        <h3>Step 2: Configure Email Notifications</h3>
+        <p>
+          Use Google Apps Script to send automatic email notifications
+          to IT personnel whenever a form submission is received.
+          This ensures immediate awareness and faster response times.
+        </p>
+
+        <h4>Instructions</h4>
+        <ol>
+          <li>Open your Google Form responses spreadsheet</li>
+          <li>Go to <strong>Extensions → Apps Script</strong></li>
+          <li>Delete any existing code and paste the script below</li>
+          <li>Replace <code>your-email@example.com</code> with your IT staff email</li>
+          <li>Click the clock icon to add a trigger: 
+            Choose which function to run: onFormSubmit ->
+            Choose which deployment should run: Head ->            
+            Select event source: from spreadsheet ->
+            Select event type: On form submit ->
+            Failure notification settings: Immediately ->
+          Save and authorize the script</li>
+        </ol>
+
+        <div style="position: relative; margin-top: 1rem;">
+          <button 
+            onclick="copyScript()" 
+            style="position: absolute; top: 10px; right: 10px; padding: 0.5rem 1rem; background: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">
+            Copy Script
+          </button>
+          <pre id="appsScript" style="background: #1e293b; color: #e2e8f0; padding: 1.5rem; border-radius: 8px; overflow-x: auto; font-size: 0.85rem; line-height: 1.6;"><code>function onFormSubmit(e) {
+  // Email address to notify
+  var emailAddress = "your-email@example.com";
+  
+  // Get form response values
+  var timestamp = e.values[0];
+  var email = e.values[1];
+  var room = e.values[2];
+  var issue = e.values[3];
+  var issueType = e.values[4];
+  var description = e.values[5] || "N/A";
+  var websiteLink = e.values[6] || "N/A";
+  var timeNeeded = e.values[7] || "N/A";
+  
+  // Build email subject
+  var subject = "New IT Support Request - " + issueType + " (Room " + room + ")";
+  
+  // Build email body
+  var message = "A new IT support request has been submitted:\n\n" +
+                "Timestamp: " + timestamp + "\n" +
+                "Submitted by: " + email + "\n" +
+                "Room: " + room + "\n" +
+                "Issue Type: " + issueType + "\n" +
+                "Issue/Concern: " + issue + "\n\n";
+  
+  // Add website unblock details if applicable
+  if (issueType === "Unblock Website Request") {
+    message += "--- Website Unblock Details ---\n" +
+               "Description: " + description + "\n" +
+               "Website Link: " + websiteLink + "\n" +
+               "Time Needed: " + timeNeeded + "\n";
+  }
+  
+  // Send email
+  MailApp.sendEmail(emailAddress, subject, message);
+}</code></pre>
+        </div>
+
+        <h3>Step 3: Generate Classroom QR Codes</h3>
+        <p>
+          Generate a QR code linking directly to the Google Form and
+          display it prominently in each classroom.
+        </p>
+
+        <div class="qr-input-group">
+          <input
+            id="qrUrl"
+            type="text"
+            placeholder="Paste Google Form URL here"
+          />
+          <button class="btn" onclick="generateQR()">
+            Generate QR Code
+          </button>
+        </div>
+
+        <div id="qrOutput" class="qr-output" style="display: none;">
+          <canvas id="qrCanvas"></canvas>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script src="script.js"></script>
+
+</body>
+</html>
