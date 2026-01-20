@@ -7,10 +7,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-    rel="stylesheet"
-  />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -37,16 +34,26 @@
       <button class="tab-btn" onclick="switchTab('setup', this)">
         Setup Guide
       </button>
+      <button class="tab-btn" onclick="switchTab('api', this)">
+        API Configuration
+      </button>
     </div>
 
     <section id="dashboard" class="tab-content active">
-      <p style="color: var(--text-light);">
-        This dashboard is currently displaying demo content.
-        Connect it to Google Apps Script or a backend service to
-        display live IT support tickets.
-      </p>
-    </section>
+      <div class="dashboard-header">
+        <h2>Active IT Support Requests</h2>
+        <button class="btn" onclick="refreshDashboard()">Refresh Data</button>
+      </div>
 
+      <div id="dashboardContent">
+        <div class="alert alert-info" style="margin-top: 2rem;">
+          <strong>API Not Configured</strong><br />
+          To display live IT support tickets, please configure the Google Apps Script API in the "API Configuration" tab.
+        </div>
+      </div>
+
+      <div id="ticketGrid" class="ticket-grid" style="display: none;"></div>
+    </section>
 
     <section id="setup" class="tab-content">
       <div class="setup-section">
@@ -99,25 +106,23 @@
           <li>Delete any existing code and paste the script below</li>
           <li>Replace <code>your-email@example.com</code> with your IT staff email</li>
           <li>Click the clock icon to add a trigger: 
-            Choose which function to run: onFormSubmit ->
-            Choose which deployment should run: Head ->            
-            Select event source: from spreadsheet ->
-            Select event type: On form submit ->
-            Failure notification settings: Immediately ->
+            Choose which function to run: onFormSubmit →
+            Choose which deployment should run: Head →            
+            Select event source: from spreadsheet →
+            Select event type: On form submit →
+            Failure notification settings: Immediately →
           Save and authorize the script</li>
         </ol>
 
         <div style="position: relative; margin-top: 1rem;">
           <button 
             onclick="copyScript()" 
-            style="position: absolute; top: 10px; right: 10px; padding: 0.5rem 1rem; background: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">
+            style="position: absolute; top: 10px; right: 10px; padding: 0.5rem 1rem; background: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem; z-index: 10;">
             Copy Script
           </button>
           <pre id="appsScript" style="background: #1e293b; color: #e2e8f0; padding: 1.5rem; border-radius: 8px; overflow-x: auto; font-size: 0.85rem; line-height: 1.6;"><code>function onFormSubmit(e) {
-  // Email address to notify
   var emailAddress = "your-email@example.com";
   
-  // Get form response values
   var timestamp = e.values[0];
   var email = e.values[1];
   var room = e.values[2];
@@ -127,10 +132,8 @@
   var websiteLink = e.values[6] || "N/A";
   var timeNeeded = e.values[7] || "N/A";
   
-  // Build email subject
   var subject = "New IT Support Request - " + issueType + " (Room " + room + ")";
   
-  // Build email body
   var message = "A new IT support request has been submitted:\n\n" +
                 "Timestamp: " + timestamp + "\n" +
                 "Submitted by: " + email + "\n" +
@@ -138,7 +141,6 @@
                 "Issue Type: " + issueType + "\n" +
                 "Issue/Concern: " + issue + "\n\n";
   
-  // Add website unblock details if applicable
   if (issueType === "Unblock Website Request") {
     message += "--- Website Unblock Details ---\n" +
                "Description: " + description + "\n" +
@@ -146,7 +148,6 @@
                "Time Needed: " + timeNeeded + "\n";
   }
   
-  // Send email
   MailApp.sendEmail(emailAddress, subject, message);
 }</code></pre>
         </div>
@@ -171,6 +172,140 @@
         <div id="qrOutput" class="qr-output" style="display: none;">
           <canvas id="qrCanvas"></canvas>
         </div>
+
+      </div>
+    </section>
+
+    <section id="api" class="tab-content">
+      <div class="setup-section">
+
+        <h2>API Configuration Guide</h2>
+
+        <div class="alert alert-info">
+          <strong>Purpose:</strong><br />
+          Connect your dashboard to Google Sheets to display live IT support requests in real-time.
+        </div>
+
+        <h3>Step 1: Create the Google Apps Script API</h3>
+
+        <h4>Instructions</h4>
+        <ol>
+          <li>Open your Google Form responses spreadsheet</li>
+          <li>Go to <strong>Extensions → Apps Script</strong></li>
+          <li>Click the <strong>+</strong> button next to "Files" to create a new script file</li>
+          <li>Name it <code>API</code> or <code>WebApp</code></li>
+          <li>Delete any default code and paste the API script below</li>
+          <li>Click <strong>Save</strong> (disk icon)</li>
+        </ol>
+
+        <div style="position: relative; margin-top: 1rem;">
+          <button 
+            onclick="copyApiScript()" 
+            style="position: absolute; top: 10px; right: 10px; padding: 0.5rem 1rem; background: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem; z-index: 10;">
+            Copy API Script
+          </button>
+          <pre id="apiScript" style="background: #1e293b; color: #e2e8f0; padding: 1.5rem; border-radius: 8px; overflow-x: auto; font-size: 0.85rem; line-height: 1.6;"><code>function doGet() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Form Responses 1');
+  var data = sheet.getDataRange().getValues();
+  
+  var jsonData = [];
+  for (var i = 1; i < data.length; i++) {
+    jsonData.push({
+      timestamp: data[i][0],
+      email: data[i][1],
+      room: data[i][2],
+      issue: data[i][3],
+      issueType: data[i][4],
+      description: data[i][5] || '',
+      websiteLink: data[i][6] || '',
+      timeNeeded: data[i][7] || '',
+      status: data[i][8] || 'Pending'
+    });
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify(jsonData))
+    .setMimeType(ContentService.MimeType.JSON);
+}</code></pre>
+        </div>
+
+        <h3>Step 2: Deploy the Web App</h3>
+
+        <ol>
+          <li>In the Apps Script editor, click <strong>Deploy → New deployment</strong></li>
+          <li>Click the gear icon ⚙️ next to "Select type"</li>
+          <li>Select <strong>Web app</strong></li>
+          <li>Configure the deployment:
+            <ul>
+              <li><strong>Description:</strong> IT Support API v1</li>
+              <li><strong>Execute as:</strong> Me (your email)</li>
+              <li><strong>Who has access:</strong> Anyone (recommended) or "Anyone with Google account" for more security</li>
+            </ul>
+          </li>
+          <li>Click <strong>Deploy</strong></li>
+          <li>Click <strong>Authorize access</strong> and grant permissions</li>
+          <li><strong>Copy the Web App URL</strong> - you'll need this for Step 3</li>
+        </ol>
+
+        <div class="alert alert-info" style="margin-top: 1.5rem;">
+          <strong>Important:</strong> The Web App URL should look like:<br />
+          <code>https://script.google.com/macros/s/AKfycby.../exec</code>
+        </div>
+
+        <h3>Step 3: Connect Dashboard to API</h3>
+
+        <p>Enter your Google Apps Script Web App URL below to enable live data on the dashboard:</p>
+
+        <div class="qr-input-group">
+          <input
+            id="apiUrl"
+            type="text"
+            placeholder="Paste your Web App URL here (https://script.google.com/macros/s/...)"
+          />
+          <button class="btn" onclick="saveApiUrl()">
+            Save API URL
+          </button>
+        </div>
+
+        <div id="apiStatus" style="margin-top: 1rem; display: none;"></div>
+
+        <h3>Step 4: Add Status Column (Optional)</h3>
+
+        <p>
+          To track request status (Pending, In Progress, Resolved), add a "Status" column 
+          to your spreadsheet after the "Time Needed" column. IT staff can then update 
+          the status directly in the spreadsheet, and it will reflect on the dashboard.
+        </p>
+
+        <h4>Recommended Status Values</h4>
+        <ul>
+          <li><strong>Pending</strong> - Request submitted, awaiting action</li>
+          <li><strong>In Progress</strong> - IT staff actively working on the issue</li>
+          <li><strong>Resolved</strong> - Issue has been fixed</li>
+          <li><strong>Closed</strong> - Request completed and verified</li>
+        </ul>
+
+        <h3>Troubleshooting</h3>
+
+        <h4>Dashboard shows "Failed to load data"</h4>
+        <ul>
+          <li>Verify the Web App URL is correct and complete</li>
+          <li>Ensure "Who has access" is set to "Anyone" in deployment settings</li>
+          <li>Check that you authorized the script</li>
+          <li>Try redeploying the web app</li>
+        </ul>
+
+        <h4>Data not updating</h4>
+        <ul>
+          <li>Click the "Refresh Data" button on the Dashboard tab</li>
+          <li>Clear your browser cache</li>
+          <li>Verify new form submissions are appearing in the spreadsheet</li>
+        </ul>
+
+        <h4>CORS errors in console</h4>
+        <ul>
+          <li>Make sure you're using the <code>/exec</code> URL, not <code>/dev</code></li>
+          <li>Redeploy the web app and use the new URL</li>
+        </ul>
 
       </div>
     </section>
